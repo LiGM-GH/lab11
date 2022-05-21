@@ -8,25 +8,23 @@ interface
                                 value : Pointer;
                                 valueType : String;
                             end;
-        type ListType     = record
-                                first  : ^ListNodeType;
-                                length : Integer;
-                            end;
+        type ListType     = record first  : ^ListNodeType; end;
+        type BlockType = function(val : ListNodeType) : Boolean;
     // List methods
-        procedure initList(var list : ListType); overload;
+        procedure init(var list : ListType); overload;
         // adds
-            function addToList(var list  : ListType;
+            function add(var list  : ListType;
                                var value : ListNodeType) : ListType; overload;
 
-            function addToList(var list  : ListType;
+            function add(var list  : ListType;
                                value     : Pointer; 
                                valueType : String) : ListType; overload;
 
         // unshifts
-            function unshiftList(var list  : ListType;
+            function unshift(var list  : ListType;
                                  var value : ListNodeType) : ListType; overload;
 
-            function unshiftList(var list  : ListType;
+            function unshift(var list  : ListType;
                                      value : Pointer;
                                  valueType : String) : ListType; overload;
         // inspect/to_s/print_self
@@ -40,17 +38,16 @@ interface
                                         var index : Integer; 
                                            number : Integer) : ListNodeType; overload;
         // inserts
-            function insertToList(var list : ListType; 
+            function insert(var list : ListType; 
                                       what : ListNodeType;
                                      where : Integer) : ListType; overload;
 implementation
-    procedure initList(var list : ListType);
+    procedure init(var list : ListType);
         begin
             list.first := nil;
-            list.length := 0;
         end;
 
-    function addToList(var list  : ListType;
+    function add(var list  : ListType;
                        var value : ListNodeType) : ListType; overload;
         var elem : ListNodeType;
         begin
@@ -69,15 +66,14 @@ implementation
                 end;
                 elem.next := @value;
             end;
-            list.length := list.length + 1;
             // writeln('List#add -> List#to_s');
             // writeln(toString(list));
             // writeln('List#to_s -> List#add');
             // writeln;
-            addToList := list;
+            add := list;
         end;
 
-    function addToList(var list  : ListType;
+    function add(var list  : ListType;
                        value     : Pointer; 
                        valueType : String) : ListType; overload;
         var valueNode : ListNodeType;
@@ -85,21 +81,20 @@ implementation
             valueNode.value := value;
             valueNode.next := nil;
             valueNode.valueType := valueType;
-            list.length := list.length + 1;
-            addToList := addToList(list, valueNode);
+            add := add(list, valueNode);
         end;
 
-    function unshiftList(var list  : ListType;
+    function unshift(var list  : ListType;
                          var value : ListNodeType) : ListType; overload;
         begin
             if (Pointer(list.first) = nil)
             then value.next := nil
             else value.next := list.first;
             list.first := @value;
-            unshiftList := list;
+            unshift := list;
         end;
 
-    function unshiftList(var list  : ListType;
+    function unshift(var list  : ListType;
                              value : Pointer;
                          valueType : String) : ListType; overload;
         var valueNode : ListNodeType;
@@ -107,7 +102,7 @@ implementation
             valueNode.value := value;
             valueNode.next := nil;
             valueNode.valueType := valueType;
-            unshiftList := unshiftList(list, valueNode);
+            unshift := unshift(list, valueNode);
         end;
 
     function toString(const list : ListType) : String; overload;
@@ -220,7 +215,7 @@ implementation
                 )
             end;
         end;
-    function insertToList(var list : ListType; 
+    function insert(var list : ListType; 
                               what : ListNodeType;
                              where : Integer) : ListType; overload;
         var index : Integer;
@@ -230,7 +225,45 @@ implementation
             node := findNodeWithIndex(list.first^, index, where);
             what.next := node.next;
             node.next := @what;
-            insertToList := list;
+            insert := list;
+        end;
+    function delete(var list : ListType; where : Integer) : ListType; overload;
+        var node  : ListNodeType;
+            index : Integer;
+        begin
+            index := 0;
+            node := findNodeWithIndex(list.first^, index, where - 1);
+            if not (Pointer(node.next^.next) = nil)
+            then node.next := node.next^.next 
+            else node.next := nil;
+            delete := list;
+        end;
+    procedure recursiveDelete(var node : ListNodeType); overload;
+        begin
+            if not (Pointer(node.next) = nil)
+            then recursiveDelete(node.next^);
+            node.next := nil;
+        end;
+    procedure delete(var list  : ListType); overload;
+        var elem : ListNodeType;
+        begin
+            if not (Pointer(list.first) = nil)
+            then begin
+                elem := list.first^;
+                recursiveDelete(elem);
+            end;
         end;
 
+    function findByBlock(const node : ListNodeType; block : BlockType) : ListNodeType; overload;
+        begin
+            if not(Pointer(node.next) = nil)
+            then findByBlock := findByBlock(node.next^, block)
+            else findByBlock := node;
+        end;
+
+    function findByBlock(const list : ListType; block : BlockType) : ListNodeType; overload;
+        begin
+            if not(Pointer(list.first) = nil)
+            then findByBlock := findByBlock(list.first^, block);
+        end;
 end.
