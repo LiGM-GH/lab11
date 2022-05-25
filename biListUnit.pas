@@ -3,7 +3,7 @@ unit biListUnit;
 interface
     uses sysUtils;
     type BiListNodeType = record next, last : ^BiListNodeType;
-                                 value      : Pointer; 
+                                 value      : Pointer;
                                  valueType  : String;
                           end;
     type BiListType = record first, last : ^BiListNodeType; end;
@@ -11,14 +11,14 @@ interface
     function last(const node : BiListNodeType) : BiListNodeType; overload;
     function init(var list : BiListType) : BiListType; overload;
     function last(const list : BiListType) : BiListNodeType; overload;
-    function add(var list : BiListType; 
+    function add(var list : BiListType;
                      node : BiListNodeType
                 )         : BiListType; overload;
     function unshift(var list : BiListType;
                          node : BiListNodeType
                     )         : BiListType; overload;
     function get(var list : BiListType; which : Integer) : BiListNodeType; overload;
-    function get(var node           : BiListNodeType; 
+    function get(var node           : BiListNodeType;
                      counter, which : Integer
                 )                   : BiListNodeType; overload;
 implementation
@@ -31,7 +31,7 @@ implementation
 
     function last(const node : BiListNodeType) : BiListNodeType; overload;
         begin
-            if Pointer(node.next) = nil 
+            if Pointer(node.next) = nil
             then last := node
             else last := last(node.next^);
         end;
@@ -41,7 +41,7 @@ implementation
         end;
 
     function add(
-            var list : BiListType; 
+            var list : BiListType;
             node : BiListNodeType
         ) : BiListType; overload;
         var last : BiListNodeType;
@@ -59,8 +59,8 @@ implementation
             end;
             add := list;
         end;
-    
-    function unshift(var list : BiListType; 
+
+    function unshift(var list : BiListType;
                          node : BiListNodeType
                     )         : BiListType; overload;
         var first : BiListNodeType;
@@ -78,7 +78,7 @@ implementation
             end;
             unshift := list;
         end;
-    function get(var node           : BiListNodeType; 
+    function get(var node           : BiListNodeType;
                      counter, which : Integer
                 )                   : BiListNodeType; overload;
         begin
@@ -93,7 +93,7 @@ implementation
         begin
             get := get(list.first^, 0, which);
         end;
-    function insert(var list      : BiListType; 
+    function insert(var list      : BiListType;
                         node      : BiListNodeType;
                         afterWhat : Integer
                    )              : BiListType; overload;
@@ -119,5 +119,28 @@ implementation
     function findBy(block : BlockType; var list : BiListType) : BiListNodeType; overload;
         begin
             findBy := findBy(block, list.first^);
+        end;
+
+    function insertBy(block : BlockType; const list : BiListType; node : BiListNodeType) : BiListType; overload;
+        begin
+            insertBy(block, list.first^, node);
+            insertBy := list;
+        end;
+
+    function insertBy(block : BlockType; node : BiListNodeType; given : BiListNodeType) : BiListNodeType; overload;
+        begin
+            if Pointer(node.next) = nil
+            then begin
+                node.next := @given;
+                given.last := @node;
+            end
+            else
+            if block(node, given) and block(given, node.next^)
+            then begin
+                given.next := node.next;
+                node.next := @given;
+                given.last := @node;
+            end
+            else insertBy := insertBy(block, node.next^, given);
         end;
 end.
