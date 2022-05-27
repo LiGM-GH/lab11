@@ -10,6 +10,7 @@ interface
                             end;
         type ListType     = record first  : ^ListNodeType; end;
         type BlockType = function(val : ListNodeType) : Boolean;
+        type ConditionBlockType = function(val1, val2 : ListNodeType) : Boolean;
     // List methods
         procedure init(var list : ListType); overload;
         // adds
@@ -41,6 +42,15 @@ interface
             function insert(var list : ListType; 
                                       what : ListNodeType;
                                      where : Integer) : ListType; overload;
+    function delete(var list : ListType; where : Integer) : ListType; overload;
+    procedure recursiveDelete(var node : ListNodeType); overload;
+    procedure delete(var list  : ListType); overload;
+    function findByBlock(const node : ListNodeType; block : BlockType) : ListNodeType; overload;
+    function findByBlock(const list : ListType; block : BlockType) : ListNodeType; overload;
+    function insertBy(block : ConditionBlockType; node : ListNodeType; given : ListNodeType) : ListNodeType; overload;
+    function insertBy(block : ConditionBlockType; const list : ListType; node : ListNodeType) : ListType; overload;
+    procedure deleteBy(block : BlockType; var node : ListNodeType); overload;
+    function deleteBy(block : BlockType; var list : ListType) : ListType; overload;
 implementation
     procedure init(var list : ListType);
         begin
@@ -48,7 +58,7 @@ implementation
         end;
 
     function add(var list  : ListType;
-                       var value : ListNodeType) : ListType; overload;
+                 var value : ListNodeType) : ListType; overload;
         var elem : ListNodeType;
         begin
             // writeln('List#add');
@@ -216,8 +226,8 @@ implementation
             end;
         end;
     function insert(var list : ListType; 
-                              what : ListNodeType;
-                             where : Integer) : ListType; overload;
+                        what : ListNodeType;
+                       where : Integer) : ListType; overload;
         var index : Integer;
             node  : ListNodeType;
         begin
@@ -265,5 +275,41 @@ implementation
         begin
             if not(Pointer(list.first) = nil)
             then findByBlock := findByBlock(list.first^, block);
+        end;
+
+    function insertBy(block : ConditionBlockType; node : ListNodeType; given : ListNodeType) : ListNodeType; overload;
+        begin
+            if Pointer(node.next) = nil
+            then begin
+                node.next := @given;
+                given.next := @node;
+            end
+            else
+            if block(node, given) and block(given, node.next^)
+            then begin
+                given.next := node.next;
+                node.next := @given;
+            end
+            else insertBy := insertBy(block, node.next^, given);
+        end;
+
+    function insertBy(block : ConditionBlockType; const list : ListType; node : ListNodeType) : ListType; overload;
+        begin
+            insertBy(block, list.first^, node);
+            insertBy := list;
+        end;
+    procedure deleteBy(block : BlockType; var node : ListNodeType); overload;
+        begin
+            if Pointer(node.next) <> nil
+            then begin
+                if block(node.next^)
+                then node.next := node.next^.next;
+                deleteBy(block, node.next^);
+            end;
+        end;
+    function deleteBy(block : BlockType; var list : ListType) : ListType; overload;
+        begin
+            deleteBy(block, list.first^);
+            deleteBy := list;
         end;
 end.

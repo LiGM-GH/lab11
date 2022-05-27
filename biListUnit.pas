@@ -8,6 +8,7 @@ interface
                           end;
     type BiListType = record first, last : ^BiListNodeType; end;
     type BlockType = function(val : BiListNodeType) : Boolean;
+    type ConditionBlockType = function(val1, val2 : BiListNodeType) : Boolean;
     function last(const node : BiListNodeType) : BiListNodeType; overload;
     function init(var list : BiListType) : BiListType; overload;
     function last(const list : BiListType) : BiListNodeType; overload;
@@ -21,6 +22,8 @@ interface
     function get(var node           : BiListNodeType;
                      counter, which : Integer
                 )                   : BiListNodeType; overload;
+    procedure deleteBy(block : BlockType; var node : BiListNodeType); overload;
+    function deleteBy(block : BlockType; var list : BiListType) : BiListType; overload;
 implementation
     function init(var list : BiListType) : BiListType; overload;
         begin
@@ -116,18 +119,23 @@ implementation
             then writeln('Not found')
             else findBy := findBy(block, node.next^);
         end;
+    function rFindBy(block : BlockType; node : BiListNodeType) : BiListNodeType; overload;
+        begin
+            if block(node)
+            then rFindBy := node
+            else
+            if Pointer(node.last) = nil
+            then writeln('Not found')
+            else rFindBy := rFindBy(block, node.last^);
+        end;
+    function rFindBy(block : BlockType; const list : BiListType) : BiListNodeType; overload;
+        begin rFindBy := rFindBy(block, list.last^); end;
     function findBy(block : BlockType; var list : BiListType) : BiListNodeType; overload;
         begin
             findBy := findBy(block, list.first^);
         end;
 
-    function insertBy(block : BlockType; const list : BiListType; node : BiListNodeType) : BiListType; overload;
-        begin
-            insertBy(block, list.first^, node);
-            insertBy := list;
-        end;
-
-    function insertBy(block : BlockType; node : BiListNodeType; given : BiListNodeType) : BiListNodeType; overload;
+    function insertBy(block : ConditionBlockType; node : BiListNodeType; given : BiListNodeType) : BiListNodeType; overload;
         begin
             if Pointer(node.next) = nil
             then begin
@@ -142,5 +150,26 @@ implementation
                 given.last := @node;
             end
             else insertBy := insertBy(block, node.next^, given);
+        end;
+
+    function insertBy(block : ConditionBlockType; const list : BiListType; node : BiListNodeType) : BiListType; overload;
+        begin
+            insertBy(block, list.first^, node);
+            insertBy := list;
+        end;
+    procedure deleteBy(block : BlockType; var node : BiListNodeType); overload;
+        begin
+            if block(node)
+            then begin
+                node.last^.next := node.next;
+                node.next^.last := node.last;
+            end;
+            if Pointer(node.next) <> nil
+            then deleteBy(block, node.next^);
+        end;
+    function deleteBy(block : BlockType; var list : BiListType) : BiListType; overload;
+        begin
+            deleteBy(block, list.first^);
+            deleteBy := list;
         end;
 end.
