@@ -3,8 +3,7 @@ unit biListUnit;
 interface
     uses sysUtils;
     type BiListNodeType = record next, last : ^BiListNodeType;
-                                 value      : Pointer;
-                                 valueType  : String;
+                                 value      : Char;
                           end;
     type BiListType = record first, last : ^BiListNodeType; end;
     type BlockType = function(val : BiListNodeType) : Boolean;
@@ -12,6 +11,7 @@ interface
     function last(const node : BiListNodeType) : BiListNodeType; overload;
     function init(var list : BiListType) : BiListType; overload;
     function last(const list : BiListType) : BiListNodeType; overload;
+    function add(var list : BiListType; value : char) : BiListType;
     function add(var list : BiListType;
                      node : BiListNodeType
                 )         : BiListType; overload;
@@ -24,6 +24,8 @@ interface
                 )                   : BiListNodeType; overload;
     procedure deleteBy(block : BlockType; var node : BiListNodeType); overload;
     function deleteBy(block : BlockType; var list : BiListType) : BiListType; overload;
+    function readList(var aFile : Text; var list : BiListType) : BiListType; overload;
+    function insertBy(block : ConditionBlockType; const list : BiListType; node : BiListNodeType) : BiListType; overload;
 implementation
     function init(var list : BiListType) : BiListType; overload;
         begin
@@ -42,7 +44,14 @@ implementation
         begin
             last := list.last^;
         end;
-
+    function add(var list : BiListType; value : char) : BiListType;
+        var node : BiListNodeType;
+        begin
+            node.last := nil;
+            node.next := nil;
+            node.value := value;
+            add := add(list, node)
+        end;
     function add(
             var list : BiListType;
             node : BiListNodeType
@@ -171,5 +180,41 @@ implementation
         begin
             deleteBy(block, list.first^);
             deleteBy := list;
+        end;
+    function readList(var aFile : Text; var list : BiListType) : BiListType; overload;
+        var aChar : Char;
+        begin
+            aChar := #0;
+
+            while not EOF(aFile) do begin
+                read(aFile, aChar);
+                add(list, aChar);
+            end;
+            readList := list;
+        end;
+    procedure writeList(const node : BiListNodeType); overload;
+        begin
+            writeln(node.value);
+            if Pointer(node.next) <> nil
+            then writeList(node.next^);
+        end;
+    procedure writeList(const list : BiListType); overload;
+        begin
+            if Pointer(list.first) <> nil
+            then writeList(list.first^)
+            else writeln('Nil list@first');
+        end;
+
+    procedure rWriteList(const node : BiListNodeType); overload;
+        begin
+            writeln(node.value);
+            if Pointer(node.last) <> nil
+            then rWriteList(node.last^);
+        end;
+    procedure rWriteList(const list : BiListType); overload;
+        begin
+            if Pointer(list.last) <> nil
+            then rWriteList(list.last^)
+            else writeln('Nil list@last');
         end;
 end.

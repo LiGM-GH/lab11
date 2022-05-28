@@ -1,43 +1,30 @@
 unit listUnit;
 interface
-    // uses
-        uses sysUtils;
-    // type definitions
-        type ListNodeType = record
-                                next  : ^ListNodeType;
-                                value : Pointer;
-                                valueType : String;
-                            end;
-        type ListType     = record first  : ^ListNodeType; end;
-        type BlockType = function(val : ListNodeType) : Boolean;
-        type ConditionBlockType = function(val1, val2 : ListNodeType) : Boolean;
-    // List methods
+    type ListNodeType = record
+                            next  : ^ListNodeType;
+                            value : Char;
+                        end;
+    type ListType     = record first  : ^ListNodeType; end;
+    type BlockType = function(val : ListNodeType) : Boolean;
+    type ConditionBlockType = function(val1, val2 : ListNodeType) : Boolean;
         procedure init(var list : ListType); overload;
-        // adds
-            function add(var list  : ListType;
-                               var value : ListNodeType) : ListType; overload;
+        function add(var list  : ListType;
+                     var value : ListNodeType) : ListType; overload;
+        function add(var list  : ListType;
+                     value     : Char) : ListType; overload;
+        function unshift(var list  : ListType;
+                                var value : ListNodeType) : ListType; overload;
 
-            function add(var list  : ListType;
-                               value     : Pointer; 
-                               valueType : String) : ListType; overload;
-
-        // unshifts
-            function unshift(var list  : ListType;
-                                 var value : ListNodeType) : ListType; overload;
-
-            function unshift(var list  : ListType;
-                                     value : Pointer;
-                                 valueType : String) : ListType; overload;
-        // inspect/to_s/print_self
-            function inspect( const node : ListNodeType) : String; overload;
-            function toString(const node : ListNodeType) : String; overload;
-            function inspect( const list : ListType)     : String; overload;
-            function toString(const list : ListType)     : String; overload;
-            procedure writeList(const list : ListType); overload;
-        // finds
-            function findNodeWithIndex(const node : ListNodeType; 
-                                        var index : Integer; 
-                                           number : Integer) : ListNodeType; overload;
+        function unshift(var list  : ListType;
+                             value : Char) : ListType; overload;
+        function inspect( const node : ListNodeType) : String; overload;
+        function toString(const node : ListNodeType) : String; overload;
+        function inspect( const list : ListType)     : String; overload;
+        function toString(const list : ListType)     : String; overload;
+        procedure writeList(const list : ListType); overload;
+        function findNodeWithIndex(const node : ListNodeType; 
+                                    var index : Integer; 
+                                       number : Integer) : ListNodeType; overload;
         // inserts
             function insert(var list : ListType; 
                                       what : ListNodeType;
@@ -49,8 +36,10 @@ interface
     function findByBlock(const list : ListType; block : BlockType) : ListNodeType; overload;
     function insertBy(block : ConditionBlockType; node : ListNodeType; given : ListNodeType) : ListNodeType; overload;
     function insertBy(block : ConditionBlockType; const list : ListType; node : ListNodeType) : ListType; overload;
+    function insertBy(block : ConditionBlockType; const list : ListType; val : Char) : ListType; overload;
     procedure deleteBy(block : BlockType; var node : ListNodeType); overload;
     function deleteBy(block : BlockType; var list : ListType) : ListType; overload;
+    function readList(var aFile : Text; var list : ListType) : ListType; overload;
 implementation
     procedure init(var list : ListType);
         begin
@@ -84,13 +73,11 @@ implementation
         end;
 
     function add(var list  : ListType;
-                       value     : Pointer; 
-                       valueType : String) : ListType; overload;
+                 value     : Char) : ListType; overload;
         var valueNode : ListNodeType;
         begin
             valueNode.value := value;
             valueNode.next := nil;
-            valueNode.valueType := valueType;
             add := add(list, valueNode);
         end;
 
@@ -105,13 +92,11 @@ implementation
         end;
 
     function unshift(var list  : ListType;
-                             value : Pointer;
-                         valueType : String) : ListType; overload;
+                         value : Char) : ListType; overload;
         var valueNode : ListNodeType;
         begin
             valueNode.value := value;
             valueNode.next := nil;
-            valueNode.valueType := valueType;
             unshift := unshift(list, valueNode);
         end;
 
@@ -147,32 +132,14 @@ implementation
         end;
 
     function toString(const node : ListNodeType) : String; overload;
-        var toReturn : String;
         begin
             // write('Node#to_s');
-            toReturn := '';
-            case node.valueType of
-                'String', 'string', 'Char', 'char'  : 
-                            toReturn := String(node.value^);
-                'Integer' : toReturn := intToStr(Integer(node.value^));
-                'Real'    : toReturn := FloatToStr(Real(node.value^));
-                else begin writeln('::UNKNOWN TYPE!'); toReturn := 'ERR::NOTYPE'; end;
-            end;
-            toString := toReturn;
+            toString := String(node.value);
         end;
 
     function inspect(const node : ListNodeType) : String; overload;
-        var toReturn : String;
         begin
-            toReturn := '';
-            case node.valueType of
-                'String', 'string', 'Char', 'char'  : 
-                            toReturn := '"' + String(node.value^) + '"';
-                'Integer' : toReturn := intToStr(Integer(node.value^));
-                'Real'    : toReturn := FloatToStr(Real(node.value^));
-                else toReturn := 'ERR::NOTYPE'; 
-            end;
-            inspect := toReturn;
+            inspect := node.value;
         end;
 
     function inspect(const list : ListType) : String; overload;
@@ -298,6 +265,13 @@ implementation
             insertBy(block, list.first^, node);
             insertBy := list;
         end;
+    function insertBy(block : ConditionBlockType; const list : ListType; val : Char) : ListType; overload;
+        var node : ListNodeType;
+        begin
+            node.value := val;
+            node.next := nil;
+            insertBy := insertBy(block, list, node);
+        end;
     procedure deleteBy(block : BlockType; var node : ListNodeType); overload;
         begin
             if Pointer(node.next) <> nil
@@ -311,5 +285,16 @@ implementation
         begin
             deleteBy(block, list.first^);
             deleteBy := list;
+        end;
+    function readList(var aFile : Text; var list : ListType) : ListType; overload;
+        var aChar : Char;
+        begin
+            aChar := #0;
+
+            while not EOF(aFile) do begin
+                read(aFile, aChar);
+                add(list, aChar);
+            end;
+            readList := list;
         end;
 end.
